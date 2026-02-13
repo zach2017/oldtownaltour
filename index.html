@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Old Alabama Town Tours</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    (function() {
+      const saved = localStorage.getItem('oat-theme');
+      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ink:     { 50:'#f6f5f0', 100:'#e8e6da', 200:'#d3ceb8', 300:'#b9b18f', 400:'#a39a72', 500:'#8e8560', 600:'#756c50', 700:'#5d5542', 800:'#4e4739', 900:'#444033', 950:'#26231c' },
+            bronze:  { 300:'#d4a96a', 400:'#b08d57', 500:'#9a7b4f', 600:'#7d6340', 700:'#5e4a30' },
+            gallery: { 50:'#fdfcf9', 100:'#faf7f0', 800:'#2c2a24', 900:'#1e1d18', 950:'#14130f' },
+            clay:    { 50:'#fdf6f0', 100:'#f9e8d8', 400:'#dd8a52', 500:'#d46f34' },
+          },
+          fontFamily: {
+            display: ['"Playfair Display"', 'Georgia', 'serif'],
+            body:    ['"Source Sans 3"', 'system-ui', 'sans-serif'],
+            mono:    ['"JetBrains Mono"', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #b9b18f; border-radius: 3px; }
+    .dark ::-webkit-scrollbar-thumb { background: #5d5542; }
+    .fade-in { animation: fadeIn .35s ease-out; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .slide-up { animation: slideUp .4s cubic-bezier(.22,1,.36,1); }
+    @keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+    .upload-zone.dragover { border-color:#9a7b4f; background:rgba(154,123,79,.08); }
+    .toast { animation: toastIn .3s ease-out, toastOut .3s ease-in 2.7s forwards; }
+    @keyframes toastIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes toastOut { from { opacity:1; } to { opacity:0; } }
+    .theme-toggle { position:relative; width:52px; height:28px; }
+    .theme-toggle input { opacity:0; width:0; height:0; }
+    .theme-slider { position:absolute; cursor:pointer; inset:0; background:#e8e6da; border-radius:14px; transition:.3s; }
+    .dark .theme-slider { background:#444033; }
+    .theme-slider::before { content:''; position:absolute; height:22px; width:22px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.3s; box-shadow:0 1px 3px rgba(0,0,0,.15); }
+    .dark .theme-slider::before { transform:translateX(24px); background:#d4a96a; }
+    .mobile-menu { transform:translateX(-100%); transition:transform .3s cubic-bezier(.22,1,.36,1); }
+    .mobile-menu.open { transform:translateX(0); }
+    .dropdown-menu { display:none; }
+    .dropdown-menu.show { display:block; }
+    @media print {
+      body { background:white !important; color:#1e1d18 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .no-print { display:none !important; }
+      .print-only { display:block !important; }
+      table { page-break-inside:auto; }
+      tr { page-break-inside:avoid; }
+      main { max-width:100% !important; padding:0 16px !important; }
+      .stat-card { border:1px solid #ccc !important; background:white !important; color:#1e1d18 !important; }
+      .stat-card p { color:#1e1d18 !important; }
+      .print-table { display:table !important; }
+      .print-table th, .print-table td { padding:8px 12px !important; border-bottom:1px solid #ddd !important; }
+    }
+  </style>
+</head>
+
+<body class="h-full bg-gallery-50 dark:bg-gallery-950 text-gallery-900 dark:text-ink-100 font-body antialiased transition-colors duration-300">
+
+  <!-- TOAST -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 no-print"></div>
+
+  <!-- PRINT HEADER -->
+  <div class="print-only hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:24px 0;border-bottom:3px solid #9a7b4f;margin-bottom:24px;">
+      <div>
+        <h1 style="font-family:Playfair Display,Georgia,serif;font-size:24px;font-weight:700;margin:0;">Old Alabama Town Tours</h1>
+        <p style="font-size:13px;color:#8e8560;margin:4px 0 0;">Self-Guided Tour Management &mdash; Location Inventory Report</p>
+      </div>
+      <div style="text-align:right;font-size:12px;color:#8e8560;">
+        <p id="print-date" style="margin:0;"></p>
+        <p style="margin:4px 0 0;">Generated from Tour Admin Dashboard</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE OVERLAY -->
+  <div id="mobile-overlay" class="fixed inset-0 bg-black/50 z-40 hidden no-print lg:hidden" onclick="closeMobileMenu()"></div>
+
+  <!-- MOBILE SIDEBAR -->
+  <aside id="mobile-menu" class="mobile-menu fixed top-0 left-0 h-full w-72 bg-white dark:bg-gallery-900 z-50 shadow-2xl no-print lg:hidden">
+    <div class="p-5 border-b border-ink-100 dark:border-ink-800">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-bronze-400 to-bronze-600 flex items-center justify-center shadow-lg">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21h18M3 7v1a3 3 0 003 3h0a3 3 0 003-3V7m0 0V4h6v3m0 0v1a3 3 0 003 3h0a3 3 0 003-3V7M6 21V11m12 10V11"/></svg>
+          </div>
+          <div>
+            <h2 class="font-display text-sm font-bold leading-tight dark:text-ink-50">Old Alabama Town</h2>
+            <p class="text-[11px] text-ink-400">Tour Management</p>
+          </div>
+        </div>
+        <button onclick="closeMobileMenu()" class="p-1 text-ink-400 hover:text-gallery-900 dark:hover:text-ink-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <nav class="p-3 space-y-0.5">
+      <button onclick="closeMobileMenu(); openCreateModal()" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800/50 rounded-lg transition-colors">
+        <svg class="w-5 h-5 text-bronze-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
+        Add Location
+      </button>
+      <div class="border-t border-ink-100 dark:border-ink-800 my-2 mx-4"></div>
+      <p class="px-4 py-1 text-[10px] uppercase tracking-widest text-ink-400 dark:text-ink-600 font-medium">Data</p>
+      <button onclick="closeMobileMenu(); handleImport()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800/50 rounded-lg transition-colors">
+        <svg class="w-4 h-4 text-ink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+        Import JSON
+      </button>
+      <button onclick="closeMobileMenu(); handleExport('json')" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800/50 rounded-lg transition-colors">
+        <svg class="w-4 h-4 text-ink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 6l-4-4-4 4M12 3v12"/></svg>
+        Export JSON
+      </button>
+      <button onclick="closeMobileMenu(); handleExport('csv')" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800/50 rounded-lg transition-colors">
+        <svg class="w-4 h-4 text-ink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Export CSV
+      </button>
+      <button onclick="closeMobileMenu(); handlePrintReport()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800/50 rounded-lg transition-colors">
+        <svg class="w-4 h-4 text-ink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+        Print Report
+      </button>
+      <div class="border-t border-ink-100 dark:border-ink-800 my-2 mx-4"></div>
+      <div class="flex items-center justify-between px-4 py-3">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-ink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          <span class="text-sm text-ink-500 dark:text-ink-400">Dark Mode</span>
+        </div>
+        <label class="theme-toggle">
+          <input type="checkbox" id="theme-toggle-mobile" onchange="toggleTheme()">
+          <span class="theme-slider"></span>
+        </label>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- TOP NAV -->
+  <nav class="sticky top-0 z-30 bg-white/90 dark:bg-gallery-900/95 backdrop-blur-xl border-b border-ink-100 dark:border-ink-800 no-print transition-colors duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button onclick="openMobileMenu()" class="lg:hidden p-2 -ml-2 text-ink-500 dark:text-ink-400 hover:text-gallery-900 dark:hover:text-ink-100 transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-bronze-400 to-bronze-600 flex items-center justify-center shadow-lg shadow-bronze-500/20">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21h18M3 7v1a3 3 0 003 3h0a3 3 0 003-3V7m0 0V4h6v3m0 0v1a3 3 0 003 3h0a3 3 0 003-3V7M6 21V11m12 10V11"/></svg>
+        </div>
+        <div>
+          <h1 class="font-display text-sm sm:text-lg font-bold text-gallery-900 dark:text-ink-50 leading-tight">Old Alabama Town Tours</h1>
+          <p class="text-[10px] sm:text-[11px] text-ink-400 font-light hidden sm:block">Self-Guided Tour Management</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 sm:gap-3">
+        <span id="health-badge" class="text-[10px] px-2 py-1 rounded-full bg-ink-100 dark:bg-ink-800 text-ink-400 font-mono hidden md:inline-flex">checking…</span>
+        <label class="theme-toggle hidden lg:block" title="Toggle dark mode">
+          <input type="checkbox" id="theme-toggle-desktop" onchange="toggleTheme()">
+          <span class="theme-slider"></span>
+        </label>
+        <div class="relative hidden lg:block">
+          <button onclick="toggleDropdown('data-dropdown')" class="px-3 py-2 text-sm text-ink-600 dark:text-ink-300 hover:text-gallery-900 dark:hover:text-ink-100 font-medium rounded-lg hover:bg-ink-50 dark:hover:bg-ink-800/50 transition-colors flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>
+            Data
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="data-dropdown" class="dropdown-menu absolute right-0 mt-1 w-48 bg-white dark:bg-gallery-800 rounded-xl shadow-xl border border-ink-100 dark:border-ink-700 overflow-hidden z-50">
+            <button onclick="handleImport(); closeAllDropdowns()" class="w-full text-left px-4 py-2.5 text-sm text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800/50 flex items-center gap-2.5 transition-colors">
+              <svg class="w-4 h-4 text-bronze-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+              Import JSON
+            </button>
+            <button onclick="handleExport('json'); closeAllDropdowns()" class="w-full text-left px-4 py-2.5 text-sm text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800/50 flex items-center gap-2.5 transition-colors">
+              <svg class="w-4 h-4 text-bronze-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 6l-4-4-4 4M12 3v12"/></svg>
+              Export JSON
+            </button>
+            <button onclick="handleExport('csv'); closeAllDropdowns()" class="w-full text-left px-4 py-2.5 text-sm text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800/50 flex items-center gap-2.5 transition-colors">
+              <svg class="w-4 h-4 text-bronze-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Export CSV
+            </button>
+            <div class="border-t border-ink-100 dark:border-ink-700"></div>
+            <button onclick="handlePrintReport(); closeAllDropdowns()" class="w-full text-left px-4 py-2.5 text-sm text-ink-600 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800/50 flex items-center gap-2.5 transition-colors">
+              <svg class="w-4 h-4 text-bronze-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+              Print Report
+            </button>
+          </div>
+        </div>
+        <button onclick="openCreateModal()" class="px-3 sm:px-4 py-2 bg-gradient-to-r from-bronze-500 to-bronze-600 hover:from-bronze-600 hover:to-bronze-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-all shadow-md shadow-bronze-500/20 hover:shadow-lg flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
+          <span class="hidden sm:inline">Add Location</span>
+          <span class="sm:hidden">Add</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
+
+    <!-- Stats -->
+    <div id="stats-row" class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-8">
+      <div class="stat-card bg-white dark:bg-gallery-900 rounded-xl border border-ink-100 dark:border-ink-800 p-4 sm:p-5 transition-colors">
+        <div class="flex items-center gap-2 mb-1.5">
+          <div class="w-7 h-7 rounded-lg bg-bronze-500/10 dark:bg-bronze-500/20 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5 text-bronze-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <p class="text-[10px] sm:text-[11px] uppercase tracking-wider text-ink-400 dark:text-ink-500 font-medium">Locations</p>
+        </div>
+        <p id="stat-total" class="font-display text-xl sm:text-3xl font-bold text-gallery-900 dark:text-ink-50">—</p>
+      </div>
+      <div class="stat-card bg-white dark:bg-gallery-900 rounded-xl border border-ink-100 dark:border-ink-800 p-4 sm:p-5 transition-colors">
+        <div class="flex items-center gap-2 mb-1.5">
+          <div class="w-7 h-7 rounded-lg bg-clay-500/10 dark:bg-clay-500/20 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5 text-clay-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/></svg>
+          </div>
+          <p class="text-[10px] sm:text-[11px] uppercase tracking-wider text-ink-400 dark:text-ink-500 font-medium">Audio</p>
+        </div>
+        <p id="stat-audio" class="font-display text-xl sm:text-3xl font-bold text-gallery-900 dark:text-ink-50">—</p>
+      </div>
+      <div class="stat-card bg-white dark:bg-gallery-900 rounded-xl border border-ink-100 dark:border-ink-800 p-4 sm:p-5 transition-colors">
+        <div class="flex items-center gap-2 mb-1.5">
+          <div class="w-7 h-7 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          </div>
+          <p class="text-[10px] sm:text-[11px] uppercase tracking-wider text-ink-400 dark:text-ink-500 font-medium">Video</p>
+        </div>
+        <p id="stat-video" class="font-display text-xl sm:text-3xl font-bold text-gallery-900 dark:text-ink-50">—</p>
+      </div>
+      <div class="stat-card bg-white dark:bg-gallery-900 rounded-xl border border-ink-100 dark:border-ink-800 p-4 sm:p-5 transition-colors col-span-2 sm:col-span-1">
+        <div class="flex items-center gap-2 mb-1.5">
+          <div class="w-7 h-7 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center">
+            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <p class="text-[10px] sm:text-[11px] uppercase tracking-wider text-ink-400 dark:text-ink-500 font-medium">Text</p>
+        </div>
+        <p id="stat-text" class="font-display text-xl sm:text-3xl font-bold text-gallery-900 dark:text-ink-50">—</p>
+      </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="bg-white dark:bg-gallery-900 rounded-xl border border-ink-100 dark:border-ink-800 overflow-hidden transition-colors">
+      <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-ink-100 dark:border-ink-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 class="font-display text-base sm:text-lg font-semibold dark:text-ink-50">Tour Locations</h2>
+        <div class="relative w-full sm:w-auto">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-300 dark:text-ink-500 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input id="search-input" type="text" placeholder="Search locations…"
+                 class="w-full sm:w-56 pl-9 pr-3 py-2 text-sm border border-ink-200 dark:border-ink-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-bronze-400/40 focus:border-bronze-400 bg-gallery-50 dark:bg-gallery-950 dark:text-ink-100 dark:placeholder-ink-500 transition-colors"
+                 oninput="filterLocations(this.value)" />
+        </div>
+      </div>
+
+      <!-- Desktop table -->
+      <div class="overflow-x-auto hidden sm:block">
+        <table class="w-full text-sm print-table">
+          <thead>
+            <tr class="bg-ink-50/60 dark:bg-ink-950/40 text-left">
+              <th class="px-6 py-3 font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider text-xs">Beacon ID</th>
+              <th class="px-6 py-3 font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider text-xs">Name</th>
+              <th class="px-6 py-3 font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider text-xs hidden lg:table-cell">Description</th>
+              <th class="px-6 py-3 font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider text-xs text-center">Audio</th>
+              <th class="px-6 py-3 font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider text-xs text-center">Video</th>
+              <th class="px-6 py-3 font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider text-xs text-center">Text</th>
+              <th class="px-6 py-3 font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider text-xs text-right no-print">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="locations-body" class="divide-y divide-ink-100 dark:divide-ink-800">
+            <tr><td colspan="7" class="px-6 py-12 text-center text-ink-400 dark:text-ink-500">Loading locations…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile cards -->
+      <div id="locations-mobile" class="sm:hidden divide-y divide-ink-100 dark:divide-ink-800">
+        <div class="px-4 py-12 text-center text-ink-400 dark:text-ink-500 text-sm">Loading locations…</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 pb-8 no-print">
+    <div class="text-center text-xs text-ink-300 dark:text-ink-600 py-4 border-t border-ink-100 dark:border-ink-800">
+      <p class="font-display font-semibold text-ink-400 dark:text-ink-500">Old Alabama Town Tours</p>
+      <p class="mt-0.5">Self-Guided Tour Management System</p>
+    </div>
+  </footer>
+
+  <!-- CREATE/EDIT MODAL -->
+  <div id="modal-overlay" class="fixed inset-0 z-50 hidden no-print">
+    <div class="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" onclick="closeModal()"></div>
+    <div class="absolute inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div class="bg-white dark:bg-gallery-900 sm:rounded-2xl rounded-t-2xl shadow-2xl w-full sm:max-w-lg slide-up overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div class="px-5 sm:px-6 py-4 sm:py-5 border-b border-ink-100 dark:border-ink-800 flex items-center justify-between sticky top-0 bg-white dark:bg-gallery-900 z-10">
+          <h3 id="modal-title" class="font-display text-lg font-semibold dark:text-ink-50">Add Tour Location</h3>
+          <button onclick="closeModal()" class="text-ink-400 hover:text-gallery-900 dark:hover:text-ink-100 transition-colors p-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <form id="location-form" onsubmit="handleFormSubmit(event)" class="p-5 sm:p-6 space-y-4">
+          <input type="hidden" id="form-locationId" />
+          <div>
+            <label class="block text-xs font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider mb-1.5">Beacon ID *</label>
+            <input id="form-beaconId" type="text" required class="w-full px-3 py-2.5 border border-ink-200 dark:border-ink-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bronze-400/40 focus:border-bronze-400 bg-white dark:bg-gallery-950 dark:text-ink-100 transition-colors" placeholder="e.g. BLE-LOBBY-001" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider mb-1.5">Location Name *</label>
+            <input id="form-name" type="text" required class="w-full px-3 py-2.5 border border-ink-200 dark:border-ink-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bronze-400/40 focus:border-bronze-400 bg-white dark:bg-gallery-950 dark:text-ink-100 transition-colors" placeholder="e.g. Lucas Tavern — Historic District" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider mb-1.5">Description</label>
+            <textarea id="form-description" rows="3" class="w-full px-3 py-2.5 border border-ink-200 dark:border-ink-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-bronze-400/40 focus:border-bronze-400 bg-white dark:bg-gallery-950 dark:text-ink-100 resize-none transition-colors" placeholder="Describe what the visitor will experience here…"></textarea>
+          </div>
+          <div class="flex justify-end gap-3 pt-2">
+            <button type="button" onclick="closeModal()" class="px-4 py-2.5 text-sm text-ink-500 hover:text-gallery-900 dark:hover:text-ink-100 font-medium rounded-lg transition-colors">Cancel</button>
+            <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-bronze-500 to-bronze-600 hover:from-bronze-600 hover:to-bronze-700 text-white text-sm font-medium rounded-lg transition-all shadow-md">
+              <span id="form-submit-text">Create Location</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL MODAL -->
+  <div id="detail-overlay" class="fixed inset-0 z-50 hidden no-print">
+    <div class="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" onclick="closeDetail()"></div>
+    <div class="absolute inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div class="bg-white dark:bg-gallery-900 sm:rounded-2xl rounded-t-2xl shadow-2xl w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[85vh] overflow-y-auto slide-up">
+        <div class="px-5 sm:px-6 py-4 sm:py-5 border-b border-ink-100 dark:border-ink-800 flex items-center justify-between sticky top-0 bg-white dark:bg-gallery-900 z-10">
+          <div class="min-w-0 flex-1">
+            <h3 id="detail-title" class="font-display text-lg font-semibold dark:text-ink-50 truncate">Location Details</h3>
+            <p id="detail-beacon" class="text-xs text-ink-400 font-mono mt-0.5"></p>
+          </div>
+          <button onclick="closeDetail()" class="text-ink-400 hover:text-gallery-900 dark:hover:text-ink-100 transition-colors p-1 ml-2 shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="p-5 sm:p-6 space-y-5">
+          <p id="detail-description" class="text-sm text-ink-600 dark:text-ink-400 leading-relaxed"></p>
+          <div>
+            <label class="block text-xs font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider mb-2">Upload Media</label>
+            <div id="upload-zone" class="upload-zone border-2 border-dashed border-ink-200 dark:border-ink-700 rounded-xl p-5 sm:p-6 text-center cursor-pointer hover:border-bronze-400 dark:hover:border-bronze-500 transition-colors" onclick="document.getElementById('file-input').click()">
+              <svg class="w-8 h-8 mx-auto text-ink-300 dark:text-ink-600 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16"/></svg>
+              <p class="text-sm text-ink-400 dark:text-ink-500">Drop files here or <span class="text-bronze-500 font-medium">browse</span></p>
+              <p class="text-xs text-ink-300 dark:text-ink-600 mt-1">Audio · Video · Text</p>
+            </div>
+            <input id="file-input" type="file" class="hidden" accept=".mp3,.wav,.ogg,.m4a,.aac,.mp4,.webm,.mov,.avi,.txt,.md,.pdf,.html" onchange="handleFileSelect(event)" multiple />
+            <div id="upload-progress" class="hidden mt-3">
+              <div class="flex items-center gap-3">
+                <div class="flex-1 h-2 bg-ink-100 dark:bg-ink-800 rounded-full overflow-hidden">
+                  <div id="progress-bar" class="h-full bg-gradient-to-r from-bronze-400 to-bronze-500 rounded-full transition-all duration-300" style="width:0%"></div>
+                </div>
+                <span id="progress-text" class="text-xs text-ink-400 font-mono w-10 text-right">0%</span>
+              </div>
+            </div>
+          </div>
+          <div id="files-section" class="space-y-4">
+            <div>
+              <h4 class="text-xs font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-clay-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/></svg>
+                Audio Files</h4>
+              <div id="audio-files-list" class="space-y-1"></div>
+            </div>
+            <div>
+              <h4 class="text-xs font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                Video Files</h4>
+              <div id="video-files-list" class="space-y-1"></div>
+            </div>
+            <div>
+              <h4 class="text-xs font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Text Files</h4>
+              <div id="text-files-list" class="space-y-1"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRM -->
+  <div id="confirm-overlay" class="fixed inset-0 z-[60] hidden no-print">
+    <div class="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="bg-white dark:bg-gallery-900 rounded-2xl shadow-2xl w-full max-w-sm slide-up p-6 text-center">
+        <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
+          <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </div>
+        <h3 class="font-display text-lg font-semibold mb-2 dark:text-ink-50">Delete Location?</h3>
+        <p class="text-sm text-ink-500 dark:text-ink-400 mb-6">This will permanently remove this beacon and all uploaded media.</p>
+        <div class="flex gap-3 justify-center">
+          <button onclick="closeConfirm()" class="px-4 py-2.5 text-sm text-ink-500 hover:text-gallery-900 dark:hover:text-ink-100 font-medium rounded-lg transition-colors">Cancel</button>
+          <button id="confirm-delete-btn" class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors shadow-md">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORT MODAL -->
+  <div id="import-overlay" class="fixed inset-0 z-50 hidden no-print">
+    <div class="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" onclick="closeImportModal()"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="bg-white dark:bg-gallery-900 rounded-2xl shadow-2xl w-full max-w-md slide-up overflow-hidden">
+        <div class="px-6 py-5 border-b border-ink-100 dark:border-ink-800 flex items-center justify-between">
+          <h3 class="font-display text-lg font-semibold dark:text-ink-50">Import Tour Data</h3>
+          <button onclick="closeImportModal()" class="text-ink-400 hover:text-gallery-900 dark:hover:text-ink-100 transition-colors p-1">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="p-6">
+          <div id="import-zone" class="upload-zone border-2 border-dashed border-ink-200 dark:border-ink-700 rounded-xl p-8 text-center cursor-pointer hover:border-bronze-400 transition-colors" onclick="document.getElementById('import-file-input').click()">
+            <svg class="w-10 h-10 mx-auto text-ink-300 dark:text-ink-600 mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg>
+            <p class="text-sm text-ink-500 dark:text-ink-400 font-medium">Select a JSON file to import</p>
+            <p class="text-xs text-ink-300 dark:text-ink-600 mt-1">Exported from Old Alabama Town Tours</p>
+          </div>
+          <input id="import-file-input" type="file" class="hidden" accept=".json" onchange="processImportFile(event)" />
+          <div id="import-preview" class="hidden mt-4 p-4 bg-ink-50 dark:bg-ink-950/50 rounded-lg">
+            <p class="text-sm font-medium text-ink-600 dark:text-ink-300" id="import-preview-text"></p>
+            <div class="flex justify-end gap-3 mt-4">
+              <button onclick="closeImportModal()" class="px-4 py-2 text-sm text-ink-500 font-medium rounded-lg">Cancel</button>
+              <button onclick="confirmImport()" class="px-5 py-2 bg-bronze-500 hover:bg-bronze-600 text-white text-sm font-medium rounded-lg transition-colors shadow-md">Import All</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
